@@ -7,7 +7,7 @@ if [ $# -lt 1 ]; then
 	echo "	a <name>: Attach to given dmux container"
 	echo "	rm: Remove all dmux containers"
 	echo "	rm <name>: Remove given demux container"
-	echo "	l: List all dmux containers"
+	echo "	ls: List all dmux containers"
 	exit 1
 fi
 # Check flags
@@ -42,13 +42,13 @@ case "$1" in
 		fi
 		;;
 	# List dmux containers
-	"l")
-		docker ps -a --format '{{.Names}}' | grep '^dmux-'
+	"ls")
+		docker ps -a --format '{{.Names}}' | grep '^dmux-' | cut -c 6-
 		;;
+	# Create a new container
 	*)
-		# Create a new container
 		CONTAINER_NAME="dmux-$1"
 		echo "Creating container $CONTAINER_NAME"
-		docker run -it -v "$(pwd):/workdir" -w /workdir --name "$CONTAINER_NAME" "$1" bash
+		docker run -it -v "$(pwd):/workdir" -w /workdir --hostname "$CONTAINER_NAME" --name "$CONTAINER_NAME" "$1" bash
 		;;
 esac
