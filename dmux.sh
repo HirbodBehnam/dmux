@@ -10,6 +10,18 @@ if [ $# -lt 1 ]; then
 	echo "	ls: List all dmux containers"
 	exit 1
 fi
+# This function will check the alias of a command in the first argument.
+# The result will be returned in IMAGE_NAME.
+# If there is no alias, the result will be the same as input.
+function get_image_name() {
+	IMAGE_NAME="$1"
+	# Check the filename
+	while IFS= read -r line; do
+		if [[ $(cut -f1 <<< "$line") == "$1" ]]; then
+			IMAGE_NAME=$(cut -f2 <<< "$line")
+		fi
+	done < ~/.config/dmux/alias
+}
 # Check flags
 case "$1" in
 	# Attach to container
@@ -49,6 +61,7 @@ case "$1" in
 	*)
 		CONTAINER_NAME="dmux-$1"
 		echo "Creating container $CONTAINER_NAME"
-		docker run -it -v "$(pwd):/workdir" -w /workdir --hostname "$CONTAINER_NAME" --name "$CONTAINER_NAME" "$1" bash
+		get_image_name "$1"
+		docker run -it -v "$(pwd):/workdir" -w /workdir --hostname "$CONTAINER_NAME" --name "$CONTAINER_NAME" "$IMAGE_NAME" bash
 		;;
 esac
