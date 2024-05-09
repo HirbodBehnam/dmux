@@ -10,17 +10,27 @@ if [ $# -lt 1 ]; then
 	echo "	ls: List all dmux containers"
 	exit 1
 fi
+# Create the config directory/files
+mkdir -p ~/.config/dmux
+touch ~/.config/dmux/alias
 # This function will check the alias of a command in the first argument.
 # The result will be returned in IMAGE_NAME.
 # If there is no alias, the result will be the same as input.
-function get_image_name() {
-	IMAGE_NAME="$1"
+function get_alias_image_name() {
+	IMAGE_VERSION=$(cut -sd':' -f 2 <<< "$1") # might be empty
+	IMAGE_NAME=$(cut -d':' -f 1 <<< "$1")
 	# Check the filename
 	while IFS= read -r line; do
-		if [[ $(cut -f1 <<< "$line") == "$1" ]]; then
+		if [[ $(cut -f1 <<< "$line") == "$IMAGE_NAME" ]]; then
 			IMAGE_NAME=$(cut -f2 <<< "$line")
+			break
 		fi
 	done < ~/.config/dmux/alias
+	# Concat the version if needed
+	if [ -n "$IMAGE_VERSION" ]; then
+		IMAGE_NAME+=":$IMAGE_VERSION"
+	fi
+	unset IMAGE_VERSION
 }
 # Check flags
 case "$1" in
@@ -59,9 +69,9 @@ case "$1" in
 		;;
 	# Create a new container
 	*)
+		get_alias_image_name "$1"
 		CONTAINER_NAME="dmux-$1"
 		echo "Creating container $CONTAINER_NAME"
-		get_image_name "$1"
 		docker run -it -v "$(pwd):/workdir" -w /workdir --hostname "$CONTAINER_NAME" --name "$CONTAINER_NAME" "$IMAGE_NAME" bash
 		;;
 esac
