@@ -70,7 +70,7 @@ case "$1" in
 	# Create a new container
 	*)
 		get_alias_image_name "$1"
-		CONTAINER_NAME=$(printf "%s" "dmux-$1" | tr -c 'a-zA-Z0-9._' '-')
+		CONTAINER_NAME=$(printf "%s" "dmux-$1" | tr -c 'a-zA-Z0-9._' '-') # Docker only allows specific characters in container name
 		echo "Creating container $CONTAINER_NAME from image $IMAGE_NAME"
 		docker run -it -v "$(pwd):/workdir" -w /workdir --hostname "$CONTAINER_NAME" --name "$CONTAINER_NAME" "$IMAGE_NAME" bash
 		;;
