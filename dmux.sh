@@ -5,6 +5,8 @@ if [ $# -lt 1 ]; then
 	echo "	<image>: Create a new container with given image name"
 	echo "	a: Attach to last container"
 	echo "	a <name>: Attach to given dmux container"
+	echo "	v: Remount the working directory of the last container to current working directory"
+	echo "	v <name>: Remount the working directory of given container to current working directory"
 	echo "	rm: Remove all dmux containers"
 	echo "	rm <name>: Remove given demux container"
 	echo "	ls: List all dmux containers"
@@ -12,6 +14,7 @@ if [ $# -lt 1 ]; then
 fi
 # Create the config directory/files
 mkdir -p ~/.config/dmux
+mkdir -p /tmp/dmux
 touch ~/.config/dmux/alias
 # This function will check the alias of a command in the first argument.
 # The result will be returned in IMAGE_NAME.
@@ -32,16 +35,24 @@ function get_alias_image_name() {
 	fi
 	unset IMAGE_VERSION
 }
+# Gets the container name based on the arguments of the script.
+# Either returns the name of the last dmux container or returns
+# the container name based on the arguments.
+# The result will be put into a variable called CONTAINER_NAME
+# This function must be called with the arguments of the script (infer_container_name "$@").
+function infer_container_name() {
+	# Infer the container name...
+	if [ $# -lt 2 ]; then # ...from the last container used
+		CONTAINER_NAME="$(docker ps -a --format '{{.Names}}' | grep '^dmux-' | head -n 1)"
+	else # ...from command line argument
+		CONTAINER_NAME="$2"
+	fi
+}
 # Check flags
 case "$1" in
 	# Attach to container
 	"a")
-		# Infer the container name...
-		if [ $# -lt 2 ]; then # ...from the last container used
-			CONTAINER_NAME="$(docker ps -a --format '{{.Names}}' | grep '^dmux-' | head -n 1)"
-		else # ...from command line argument
-			CONTAINER_NAME="$2"
-		fi
+		infer_container_name "$@"
 		# Check if container exists
 		if [[ "$CONTAINER_NAME" == "" ]]; then
 			echo "Cannot attach to nothing"
@@ -57,21 +68,33 @@ case "$1" in
 		;;
 	# Remove container
 	"rm")
-		if [ $# -lt 2 ]; then # Remove everything
+		if [ $# -lt 2 ]; then # remove everything
 			docker ps -a --format '{{.Names}}' | grep '^dmux-' | xargs docker rm
+			rm -r /tmp/dmux/workdir-*
 		else # Remove one container
 			docker rm "dmux-$2"
+			rm "/tmp/dmux/workdir-$2"
 		fi
 		;;
 	# List dmux containers
 	"ls")
 		docker ps -a --format '{{.Names}}' | grep '^dmux-' | cut -c 6-
 		;;
+	# Remount the working directory
+	"v")
+		infer_container_name "$@"
+		# Delete the sym link
+		rm "/tmp/dmux/workdir-$CONTAINER_NAME"
+		# Create a new one
+		echo "Remounting $CONTAINER_NAME workdir to $(pwd)"
+		ln -s "$(pwd)" "/tmp/dmux/workdir-$CONTAINER_NAME"
+		;;
 	# Create a new container
 	*)
 		get_alias_image_name "$1"
 		CONTAINER_NAME=$(printf "%s" "dmux-$1" | tr -c 'a-zA-Z0-9._' '-') # Docker only allows specific characters in container name
 		echo "Creating container $CONTAINER_NAME from image $IMAGE_NAME"
-		docker run -it -v "$(pwd):/workdir" -w /workdir --hostname "$CONTAINER_NAME" --name "$CONTAINER_NAME" "$IMAGE_NAME" bash
+		ln -s "$(pwd)" "/tmp/dmux/workdir-$CONTAINER_NAME"
+		docker run -it -v "/tmp/dmux/workdir-$CONTAINER_NAME/:/workdir" -w /workdir --hostname "$CONTAINER_NAME" --name "$CONTAINER_NAME" "$IMAGE_NAME" bash
 		;;
 esac
