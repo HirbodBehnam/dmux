@@ -26,7 +26,7 @@ target/release/lossy_link: ELF 64-bit LSB pie executable, ARM aarch64, ...
 
 Just copy the script to somewhere in your path and make it executable.
 ```bash
-curl -o /usr/local/bin/dmux https://github.com/HirbodBehnam/dmux/raw/master/dmux.sh
+curl -L -o /usr/local/bin/dmux https://github.com/HirbodBehnam/dmux/raw/master/dmux.sh
 chmod +x /usr/local/bin/dmux
 dmux
 ```
