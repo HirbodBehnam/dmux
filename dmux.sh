@@ -73,7 +73,7 @@ case "$1" in
 			rm -r /tmp/dmux/workdir-*
 		else # Remove one container
 			docker rm "dmux-$2"
-			rm "/tmp/dmux/workdir-$2"
+			rm "/tmp/dmux/workdir-dmux-$2"
 		fi
 		;;
 	# List dmux containers
