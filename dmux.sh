@@ -5,6 +5,8 @@ if [ $# -lt 1 ]; then
 	echo "	<image>: Create a new container with given image name"
 	echo "	a: Attach to last container"
 	echo "	a <name>: Attach to given dmux container"
+	echo "	sh: Spawn shell in the last container"
+	echo "	sh <name>: Spawn shell in the given dmux container"
 	echo "	v: Remount the working directory of the last container to current working directory"
 	echo "	v <name>: Remount the working directory of given container to current working directory"
 	echo "	rm: Remove all dmux containers"
@@ -65,6 +67,22 @@ case "$1" in
 		# Attach to it!
 		echo "Attaching to $CONTAINER_NAME"
 		docker start -a -i "$CONTAINER_NAME"
+		;;
+	# Create shell in container
+	"sh")
+		infer_container_name "$@"
+		# Check if container exists
+		if [[ "$CONTAINER_NAME" == "" ]]; then
+			echo "Cannot execute shell in nothing"
+			exit 1
+		fi
+		if ! docker ps -a | grep -q "$CONTAINER_NAME"; then
+			echo "Container $CONTAINER_NAME does not exists"
+			exit 1
+		fi
+		# Attach to it!
+		echo "Starting shell in $CONTAINER_NAME"
+		docker exec -it "$CONTAINER_NAME" bash
 		;;
 	# Remove container
 	"rm")
