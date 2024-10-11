@@ -47,7 +47,7 @@ function infer_container_name() {
 	if [ $# -lt 2 ]; then # ...from the last container used
 		CONTAINER_NAME="$(docker ps -a --format '{{.Names}}' | grep '^dmux-' | head -n 1)"
 	else # ...from command line argument
-		CONTAINER_NAME="$2"
+		CONTAINER_NAME="dmux-$2"
 	fi
 }
 # Check flags
@@ -55,11 +55,6 @@ case "$1" in
 	# Attach to container
 	"a")
 		infer_container_name "$@"
-		# Check if container exists
-		if [[ "$CONTAINER_NAME" == "" ]]; then
-			echo "Cannot attach to nothing"
-			exit 1
-		fi
 		if ! docker ps -a | grep -q "$CONTAINER_NAME"; then
 			echo "Container $CONTAINER_NAME does not exists"
 			exit 1
@@ -71,11 +66,6 @@ case "$1" in
 	# Create shell in container
 	"sh")
 		infer_container_name "$@"
-		# Check if container exists
-		if [[ "$CONTAINER_NAME" == "" ]]; then
-			echo "Cannot execute shell in nothing"
-			exit 1
-		fi
 		if ! docker ps -a | grep -q "$CONTAINER_NAME"; then
 			echo "Container $CONTAINER_NAME does not exists"
 			exit 1
