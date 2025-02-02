@@ -78,10 +78,10 @@ case "$1" in
 	"rm")
 		if [ $# -lt 2 ]; then # remove everything
 			docker ps -a --format '{{.Names}}' | grep '^dmux-' | xargs docker rm
-			rm -r /tmp/dmux/workdir-*
+			rm -rf /tmp/dmux/workdir-*
 		else # Remove one container
 			docker rm "dmux-$2"
-			rm -r "/tmp/dmux/workdir-dmux-$2"
+			rm -rf "/tmp/dmux/workdir-dmux-$2"
 		fi
 		;;
 	# List dmux containers
@@ -92,7 +92,7 @@ case "$1" in
 	"v")
 		infer_container_name "$@"
 		# Delete the sym link
-		rm -r "/tmp/dmux/workdir-$CONTAINER_NAME"
+		rm -rf "/tmp/dmux/workdir-$CONTAINER_NAME"
 		# Create a new one
 		echo "Remounting $CONTAINER_NAME workdir to $(pwd)"
 		ln -s "$(pwd)" "/tmp/dmux/workdir-$CONTAINER_NAME"
