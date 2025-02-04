@@ -13,7 +13,7 @@ For example, one can use these commands to compile a rust program.
 ```
 root@crow:~# git clone https://github.com/HirbodBehnam/lossy_link
 root@crow:~# cd lossy_link/
-root@crow:~/lossy_link# dmux rust
+root@crow:~/lossy_link# dmux c rust
 root@dmux-rust:/workdir# cargo build --release
 root@dmux-rust:/workdir# file target/release/lossy_link
 target/release/lossy_link: ELF 64-bit LSB pie executable, ARM aarch64, ...
