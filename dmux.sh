@@ -1,8 +1,9 @@
 #!/bin/bash
-# First argument must be the the name of the image
-if [ $# -lt 1 ]; then
-	echo "Please provide at least one argument to program. Possible arguments:"
-	echo "	<image>: Create a new container with given image name"
+
+function usage() {
+	echo "Usage:"
+	echo "	c <image>: Create a new container with the given image and default name"
+	echo "	c <image> <name>: Create a new container with the given image and name"
 	echo "	a: Attach to last container"
 	echo "	a <name>: Attach to given dmux container"
 	echo "	sh: Spawn shell in the last container"
@@ -12,12 +13,21 @@ if [ $# -lt 1 ]; then
 	echo "	rm: Remove all dmux containers"
 	echo "	rm <name>: Remove given demux container"
 	echo "	ls: List all dmux containers"
+	echo "	help: Display this help message and exit"
+}
+
+# First argument must be the the name of the image
+if [ $# -lt 1 ]; then
+	echo "Please provide at least one argument to program."
+  usage
 	exit 1
 fi
+
 # Create the config directory/files
 mkdir -p ~/.config/dmux
 mkdir -p ~/.cache/dmux
 touch ~/.config/dmux/alias
+
 # This function will check the alias of a command in the first argument.
 # The result will be returned in IMAGE_NAME.
 # If there is no alias, the result will be the same as input.
@@ -37,6 +47,7 @@ function get_alias_image_name() {
 	fi
 	unset IMAGE_VERSION
 }
+
 # Gets the container name based on the arguments of the script.
 # Either returns the name of the last dmux container or returns
 # the container name based on the arguments.
@@ -50,13 +61,22 @@ function infer_container_name() {
 		CONTAINER_NAME="dmux-$2"
 	fi
 }
+
 # Check flags
 case "$1" in
+	# Create a new container
+	"c")
+		get_alias_image_name "$2"
+		CONTAINER_NAME=$(printf "%s" "dmux-${3:-$2}" | tr -c 'a-zA-Z0-9._' '-') # Docker only allows specific characters in container name
+		echo "Creating container $CONTAINER_NAME from image $IMAGE_NAME"
+		ln -s "$(pwd)" "$HOME/.cache/dmux/workdir-$CONTAINER_NAME"
+		docker run -it -v "$HOME/.cache//dmux/workdir-$CONTAINER_NAME/:/workdir" -w /workdir --hostname "$CONTAINER_NAME" --name "$CONTAINER_NAME" "$IMAGE_NAME" bash
+		;;
 	# Attach to container
 	"a")
 		infer_container_name "$@"
 		if ! docker ps -a | grep -q "$CONTAINER_NAME"; then
-			echo "Container $CONTAINER_NAME does not exists"
+			echo "Container $CONTAINER_NAME does not exist"
 			exit 1
 		fi
 		# Attach to it!
@@ -67,12 +87,21 @@ case "$1" in
 	"sh")
 		infer_container_name "$@"
 		if ! docker ps -a | grep -q "$CONTAINER_NAME"; then
-			echo "Container $CONTAINER_NAME does not exists"
+			echo "Container $CONTAINER_NAME does not exist"
 			exit 1
 		fi
 		# Attach to it!
 		echo "Starting shell in $CONTAINER_NAME"
 		docker exec -it "$CONTAINER_NAME" bash
+		;;
+	# Remount the working directory
+	"v")
+		infer_container_name "$@"
+		# Delete the sym link
+		rm -rf "$HOME/.cache/dmux/workdir-$CONTAINER_NAME"
+		# Create a new one
+		echo "Remounting $CONTAINER_NAME workdir to $(pwd)"
+		ln -s "$(pwd)" "$HOME/.cache/dmux/workdir-$CONTAINER_NAME"
 		;;
 	# Remove container
 	"rm")
@@ -88,21 +117,13 @@ case "$1" in
 	"ls")
 		docker ps -a --format '{{.Names}}' | grep '^dmux-' | cut -c 6-
 		;;
-	# Remount the working directory
-	"v")
-		infer_container_name "$@"
-		# Delete the sym link
-		rm -rf "$HOME/.cache/dmux/workdir-$CONTAINER_NAME"
-		# Create a new one
-		echo "Remounting $CONTAINER_NAME workdir to $(pwd)"
-		ln -s "$(pwd)" "$HOME/.cache/dmux/workdir-$CONTAINER_NAME"
-		;;
-	# Create a new container
-	*)
-		get_alias_image_name "$1"
-		CONTAINER_NAME=$(printf "%s" "dmux-$1" | tr -c 'a-zA-Z0-9._' '-') # Docker only allows specific characters in container name
-		echo "Creating container $CONTAINER_NAME from image $IMAGE_NAME"
-		ln -s "$(pwd)" "$HOME/.cache/dmux/workdir-$CONTAINER_NAME"
-		docker run -it -v "$HOME/.cache/dmux/workdir-$CONTAINER_NAME/:/workdir" -w /workdir --hostname "$CONTAINER_NAME" --name "$CONTAINER_NAME" "$IMAGE_NAME" bash
-		;;
+  # Display help
+  "help")
+    usage
+    ;;
+  # Error
+  *)
+    usage
+    exit 1
+    ;;
 esac
