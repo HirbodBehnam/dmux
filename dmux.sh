@@ -16,7 +16,7 @@ if [ $# -lt 1 ]; then
 fi
 # Create the config directory/files
 mkdir -p ~/.config/dmux
-mkdir -p /var/cache/dmux
+mkdir -p ~/.cache/dmux
 touch ~/.config/dmux/alias
 # This function will check the alias of a command in the first argument.
 # The result will be returned in IMAGE_NAME.
@@ -78,10 +78,10 @@ case "$1" in
 	"rm")
 		if [ $# -lt 2 ]; then # remove everything
 			docker ps -a --format '{{.Names}}' | grep '^dmux-' | xargs docker rm
-			rm -rf /var/cache/dmux/workdir-*
+			rm -rf ~/.cache/dmux/workdir-*
 		else # Remove one container
 			docker rm "dmux-$2"
-			rm -rf "/var/cache/dmux/workdir-dmux-$2"
+			rm -rf "$HOME/.cache/dmux/workdir-dmux-$2"
 		fi
 		;;
 	# List dmux containers
@@ -92,17 +92,17 @@ case "$1" in
 	"v")
 		infer_container_name "$@"
 		# Delete the sym link
-		rm -rf "/var/cache/dmux/workdir-$CONTAINER_NAME"
+		rm -rf "$HOME/.cache/dmux/workdir-$CONTAINER_NAME"
 		# Create a new one
 		echo "Remounting $CONTAINER_NAME workdir to $(pwd)"
-		ln -s "$(pwd)" "/var/cache/dmux/workdir-$CONTAINER_NAME"
+		ln -s "$(pwd)" "$HOME/.cache/dmux/workdir-$CONTAINER_NAME"
 		;;
 	# Create a new container
 	*)
 		get_alias_image_name "$1"
 		CONTAINER_NAME=$(printf "%s" "dmux-$1" | tr -c 'a-zA-Z0-9._' '-') # Docker only allows specific characters in container name
 		echo "Creating container $CONTAINER_NAME from image $IMAGE_NAME"
-		ln -s "$(pwd)" "/var/cache/dmux/workdir-$CONTAINER_NAME"
-		docker run -it -v "/var/cache/dmux/workdir-$CONTAINER_NAME/:/workdir" -w /workdir --hostname "$CONTAINER_NAME" --name "$CONTAINER_NAME" "$IMAGE_NAME" bash
+		ln -s "$(pwd)" "$HOME/.cache/dmux/workdir-$CONTAINER_NAME"
+		docker run -it -v "$HOME/.cache/dmux/workdir-$CONTAINER_NAME/:/workdir" -w /workdir --hostname "$CONTAINER_NAME" --name "$CONTAINER_NAME" "$IMAGE_NAME" bash
 		;;
 esac
